@@ -1,0 +1,16 @@
+# Visual Studio geçici dosyaları
+.vs/
+.vscode/
+
+# Derleme dosyaları
+bin/
+obj/
+
+# Proje yapılandırma dosyaları
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Diğer
+appsettings.Development.json
