@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http; // IFormFile kullanmak için
 using Microsoft.EntityFrameworkCore;
 using System.IO;
 using ETicaret.Models; // Modeli kullanabilmek için
-using ETicaret.Data; // DbContext'i kullanabilmek için
+using ETicaret.Data; // DbContext'i kullanabilmek içi
 
 namespace ETicaret.Controllers
 {
