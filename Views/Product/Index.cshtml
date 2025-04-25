@@ -1,13 +1,27 @@
 ﻿@model IEnumerable<ETicaret.Models.Product>
 
+@{
+    ViewData["Title"] = "Product List";
+}
+
 <h2>Product List</h2>
+
+<style>
+    /* Resimlerin boyutlarını sabitlemek için CSS */
+    .product-image {
+        width: 100%;  /* Genişliği %100 yapar (kartın genişliğine uyacak şekilde) */
+        height: 200px;  /* Sabit yükseklik */
+        object-fit: contain; /* Resmin en/boy oranını koruyarak kutuya uyacak şekilde kesilmesini sağlar */
+    }
+</style>
 
 <div class="row">
     @foreach (var product in Model)
     {
         <div class="col-md-4">
             <div class="card mb-4 shadow-sm">
-                <img src="@product.ImageUrl" class="card-img-top" alt="Product Image"> <!-- Resmi burada gösteriyoruz -->
+                <!-- Resmi burada sabit boyut ile gösteriyoruz -->
+                <img src="@product.ImageUrl" class="card-img-top product-image" alt="Product Image">
                 <div class="card-body">
                     <h5 class="card-title">@product.Name</h5>
                     <p class="card-text">@product.Description</p>
