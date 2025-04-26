@@ -4,6 +4,7 @@ using ETicaret.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ETicaret.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250426143300_AddCreatedAtToProductsAndUsers")]
+    partial class AddCreatedAtToProductsAndUsers
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -93,7 +96,7 @@ namespace ETicaret.Migrations
                             Id = 1,
                             CreatedAt = new DateTime(2025, 4, 26, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "admin@eticaret.com",
-                            PasswordHash = "$2a$10$C9Pgk8HTi2WBj5tUIp8F8epdl00eEWFBYmmoLU9Nxc/IopWpLjxKG",
+                            PasswordHash = "$2a$11$Y9b/JqK8cF5dzOJqX3Nk8eGfTzAWM5gP8EMHEQ4Tdo6V2Qe8z5H.O",
                             Role = "Admin",
                             UserName = "admin"
                         });

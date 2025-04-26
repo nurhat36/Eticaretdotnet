@@ -1,0 +1,48 @@
+﻿@{
+    ViewData["Title"] = "Login";
+}
+
+<div class="container mt-5" style="max-width: 400px;">
+    <h2 class="text-center mb-4">Giriş Yap</h2>
+
+    @if (TempData["LoginError"] != null)
+    {
+        <div class="alert alert-danger" role="alert">
+            @TempData["LoginError"]
+        </div>
+    }
+
+    <form asp-action="Login" method="post">
+        <div class="form-group mb-3">
+            <label for="email">Email adresi</label>
+            <input type="email" class="form-control" id="email" name="Email" placeholder="Email adresinizi girin" required />
+        </div>
+
+        <div class="form-group mb-4">
+            <label for="password">Şifre</label>
+            <div class="input-group">
+                <input type="password" class="form-control" id="password" name="Password" placeholder="Şifrenizi girin" required />
+                <button type="button" class="btn btn-outline-secondary" onclick="togglePassword()">Göster</button>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100">Giriş Yap</button>
+    </form>
+
+    <div class="mt-3 text-center">
+        <p>Hesabınız yok mu? <a asp-action="Register" asp-controller="Account">Kayıt Ol</a></p>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function togglePassword() {
+            var passwordInput = document.getElementById("password");
+            if (passwordInput.type === "password") {
+                passwordInput.type = "text";
+            } else {
+                passwordInput.type = "password";
+            }
+        }
+    </script>
+}

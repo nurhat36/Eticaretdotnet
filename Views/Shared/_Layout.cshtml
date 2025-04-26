@@ -24,17 +24,48 @@
                         </li>
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li
-                        <li class="nav-item">
-                             <a class="nav-link text-dark" asp-controller="Product" asp-action="Index">Products</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-controller="Product" asp-action="Index">Products</a>
+                        </li>
+                    </ul>
 
-
+                    <!-- Sağ üst kullanıcı durumu -->
+                    <ul class="navbar-nav">
+                        @if (User.Identity.IsAuthenticated)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="profileDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <img src="https://cdn-icons-png.flaticon.com/512/149/149071.png" width="30" height="30" class="rounded-circle" alt="Profile" />
+                                    <span class="ms-2">@User.Identity.Name</span> <!-- Kullanıcı adı göster -->
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
+                                    <li><a class="dropdown-item" href="#">Profilim</a></li>
+                                    <li><a class="dropdown-item" href="#">Ayarlar</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" class="dropdown-item p-0 m-0">
+                                            <button type="submit" class="btn btn-link text-dark w-100 text-start">Çıkış Yap</button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-area="" asp-controller="Account" asp-action="Login">Login</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-area="" asp-controller="Account" asp-action="Register">Sign Up</a>
+                            </li>
+                        }
                     </ul>
                 </div>
             </div>
         </nav>
     </header>
+
     <div class="container">
         <main role="main" class="pb-3">
             @RenderBody()
