@@ -1,35 +1,18 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using ETicaret.Models;  // Modeli kullanabilmek için gerekli
-using BCrypt.Net;
+using ETicaret.Models;  // User modelini kullanabilmek için gerekli
 
 namespace ETicaret.Data
 {
-    public class AppDbContext : DbContext
+    public class AppDbContext : IdentityDbContext<User>  // User sýnýfýný kullanýyoruz
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
         // DbSet'ler burada tanýmlanýr
         public DbSet<Product> Products { get; set; }
-        public DbSet<User> Users { get; set; }
+        public DbSet<User> Users { get; set; }  // User tablosu için doðru DbSet
 
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            base.OnModelCreating(modelBuilder);
-
-            modelBuilder.Entity<User>().HasData(
-                new User
-                {
-                    Id = 1,
-                    UserName = "admin",
-                    Email = "admin@eticaret.com",
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"), // Þifreyi sabitledik
-                    Role = "Admin",
-                    CreatedAt = new DateTime(2025, 4, 26)
-                }
-            );
-        }
-
-
+        // Veritabaný modeli burada özelleþtirilir
     }
 }
-

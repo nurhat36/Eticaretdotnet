@@ -2,9 +2,13 @@
 using ETicaret.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Cryptography;
-using System.Text;
-using BCrypt.Net;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Http;
+using System.IO;
+using System.Threading.Tasks;
+using System.Linq;
 
 namespace ETicaret.Controllers
 {
@@ -34,32 +38,33 @@ namespace ETicaret.Controllers
             }
 
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
-            Console.WriteLine("hash  " + user.PasswordHash + "  pasvord  " + CreatePasswordHash(password));
-
             if (user != null && VerifyPasswordHash(password, user.PasswordHash))
             {
-                // Başarılı giriş
-                // Kullanıcıyı Session'a alıyoruz
+                // Claims oluştur
+                var claims = new List<Claim>
+                {
+                    new Claim(ClaimTypes.Name, user.UserName),
+                    new Claim(ClaimTypes.Email, user.Email),
+                    new Claim(ClaimTypes.Role, user.Role)
+                };
+
+                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+
+                // Kullanıcıyı oturum aç
+                await HttpContext.SignInAsync(
+                    CookieAuthenticationDefaults.AuthenticationScheme,
+                    new ClaimsPrincipal(claimsIdentity)
+                );
+
+                // İstersen Session'a da yaz
                 HttpContext.Session.SetString("UserId", user.Id.ToString());
                 HttpContext.Session.SetString("UserName", user.UserName);
                 HttpContext.Session.SetString("UserRole", user.Role);
 
-                // Eğer salt geçerli değilse hash'i güncelle
-                if (!BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
-                {
-                    user.PasswordHash = CreatePasswordHash(password);
-                    _context.Users.Update(user);
-                    await _context.SaveChangesAsync();
-                }
-                Console.WriteLine("hash  "+user.PasswordHash);
-
-                // Giriş başarılıysa anasayfaya yönlendiriyoruz
                 return RedirectToAction("Index", "Home");
             }
             else
             {
-                Console.WriteLine("hash girmiyor " + user.PasswordHash+"  pasvord  "+CreatePasswordHash(password));
-                // Email ya da şifre hatalıysa hata mesajı ekliyoruz
                 ModelState.AddModelError("", "Email veya şifre hatalı.");
                 return View();
             }
@@ -73,7 +78,7 @@ namespace ETicaret.Controllers
 
         // REGISTER POST
         [HttpPost]
-        public async Task<IActionResult> Register(string userName, string email, string password, string confirmPassword)
+        public async Task<IActionResult> Register(string userName, string email, string password, string confirmPassword, IFormFile profileImage)
         {
             if (password != confirmPassword)
             {
@@ -87,12 +92,38 @@ namespace ETicaret.Controllers
                 return View();
             }
 
+            string profileImagePath = null;
+
+            if (profileImage != null && profileImage.Length > 0)
+            {
+                // Kullanıcının fotoğrafını wwwroot/images/profiles klasörüne kaydedelim
+                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "profiles");
+
+                if (!Directory.Exists(uploadsFolder))
+                {
+                    Directory.CreateDirectory(uploadsFolder);
+                }
+
+                // Dosya adını benzersiz yapalım
+                var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(profileImage.FileName);
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                {
+                    await profileImage.CopyToAsync(fileStream);
+                }
+
+                // Veritabanına kaydedeceğimiz yol
+                profileImagePath = "/images/profiles/" + uniqueFileName;
+            }
+
             var user = new User
             {
                 UserName = userName,
                 Email = email,
                 PasswordHash = CreatePasswordHash(password),
-                Role = "Customer" // Kayıt olan kullanıcılar default "Customer" olacak
+                Role = "Customer", // Varsayılan kullanıcı rolü
+                ProfileImagePath = profileImagePath
             };
 
             _context.Users.Add(user);
@@ -103,25 +134,21 @@ namespace ETicaret.Controllers
 
         // LOGOUT
         [HttpPost]
-        public IActionResult Logout()
+        public async Task<IActionResult> Logout()
         {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             HttpContext.Session.Clear();
             return RedirectToAction("Login");
         }
 
-        // Şifreyi hashleyen fonksiyon
         private string CreatePasswordHash(string password)
         {
-            // BCrypt otomatik olarak salt oluşturur, ek bir salt parametresine gerek yok
             return BCrypt.Net.BCrypt.HashPassword(password);
         }
 
-        // Şifre doğrulayan fonksiyon
         private bool VerifyPasswordHash(string password, string storedHash)
         {
-            // Şifre doğrulama işlemi
             return BCrypt.Net.BCrypt.Verify(password, storedHash);
         }
-
     }
 }

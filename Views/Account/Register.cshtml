@@ -2,28 +2,43 @@
     ViewData["Title"] = "Sign Up";
 }
 
-<div class="container mt-5" style="max-width: 400px;">
-    <h2 class="text-center mb-4">Kayıt Ol</h2>
-    <form asp-action="Register" method="post">
-        <div class="form-group mb-3">
-            <label for="username">Kullanıcı Adı</label>
-            <input type="text" class="form-control" id="username" name="UserName" placeholder="Kullanıcı adınızı girin" required />
+<div class="container mt-5" style="max-width: 450px;">
+    <div class="card shadow p-4">
+        <h2 class="text-center mb-4">Kayıt Ol</h2>
+
+        @if (TempData["RegisterError"] != null)
+        {
+            <div class="alert alert-danger" role="alert">
+                @TempData["RegisterError"]
+            </div>
+        }
+
+        <form asp-action="Register" method="post" enctype="multipart/form-data">
+            <div class="form-group mb-3">
+                <label for="username" class="form-label">Kullanıcı Adı</label>
+                <input type="text" class="form-control" id="username" name="UserName" placeholder="Kullanıcı adınızı girin" required />
+            </div>
+            <div class="form-group mb-3">
+                <label for="email" class="form-label">Email Adresi</label>
+                <input type="email" class="form-control" id="email" name="Email" placeholder="Email adresinizi girin" required />
+            </div>
+            <div class="form-group mb-3">
+                <label for="password" class="form-label">Şifre</label>
+                <input type="password" class="form-control" id="password" name="Password" placeholder="Şifrenizi belirleyin" required />
+            </div>
+            <div class="form-group mb-3">
+                <label for="confirmPassword" class="form-label">Şifre Tekrar</label>
+                <input type="password" class="form-control" id="confirmPassword" name="ConfirmPassword" placeholder="Şifrenizi tekrar girin" required />
+            </div>
+            <div class="form-group mb-4">
+                <label for="profileImage" class="form-label">Profil Fotoğrafı (İsteğe Bağlı)</label>
+                <input type="file" class="form-control" id="profileImage" name="ProfileImage" accept="image/*" />
+            </div>
+            <button type="submit" class="btn btn-success w-100">Kayıt Ol</button>
+        </form>
+
+        <div class="mt-4 text-center">
+            <p>Zaten hesabınız var mı? <a asp-action="Login" asp-controller="Account" class="text-decoration-none">Giriş Yap</a></p>
         </div>
-        <div class="form-group mb-3">
-            <label for="email">Email adresi</label>
-            <input type="email" class="form-control" id="email" name="Email" placeholder="Email adresinizi girin" required />
-        </div>
-        <div class="form-group mb-3">
-            <label for="password">Şifre</label>
-            <input type="password" class="form-control" id="password" name="Password" placeholder="Şifrenizi belirleyin" required />
-        </div>
-        <div class="form-group mb-4">
-            <label for="confirmPassword">Şifre Tekrar</label>
-            <input type="password" class="form-control" id="confirmPassword" name="ConfirmPassword" placeholder="Şifrenizi tekrar girin" required />
-        </div>
-        <button type="submit" class="btn btn-success w-100">Kayıt Ol</button>
-    </form>
-    <div class="mt-3 text-center">
-        <p>Zaten hesabınız var mı? <a asp-action="Login" asp-controller="Account">Giriş Yap</a></p>
     </div>
 </div>
