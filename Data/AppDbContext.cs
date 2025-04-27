@@ -5,7 +5,7 @@ using ETicaret.Models;  // User modelini kullanabilmek için gerekli
 
 namespace ETicaret.Data
 {
-    public class AppDbContext : IdentityDbContext<User>  // User sýnýfýný kullanýyoruz
+    public class AppDbContext : IdentityDbContext<ApplicationUser>  // User sýnýfýný kullanýyoruz
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 

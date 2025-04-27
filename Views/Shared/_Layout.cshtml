@@ -1,5 +1,6 @@
 ﻿@using Microsoft.AspNetCore.Identity
-@inject UserManager<User> UserManager
+@inject UserManager<ApplicationUser> UserManager
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -38,11 +39,7 @@
                         {
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="profileDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    @{
-                                        var currentUser = await UserManager.GetUserAsync(User);
-                                        var profileImagePath = currentUser?.ProfileImagePath ?? "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-                                    }
-                                    <img src="@profileImagePath" width="30" height="30" class="rounded-circle" alt="Profile" />
+                                    <img src="@ViewData["ProfileImagePath"]" width="30" height="30" class="rounded-circle" alt="Profile" />
                                     <span class="ms-2">@User.Identity.Name</span>
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
@@ -66,7 +63,6 @@
                                 <a class="nav-link text-dark" asp-controller="Account" asp-action="Register">Sign Up</a>
                             </li>
                         }
-
                     </ul>
 
                 </div>
@@ -85,6 +81,7 @@
             &copy; 2025 - ETicaret - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
         </div>
     </footer>
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
