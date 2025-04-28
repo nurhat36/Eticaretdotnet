@@ -1,24 +1,25 @@
 ﻿using ETicaret.Data;
 using ETicaret.Models;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Http;
 using System.IO;
 using System.Threading.Tasks;
-using System.Linq;
+using Microsoft.AspNetCore.Http;
 
 namespace ETicaret.Controllers
 {
     public class AccountController : Controller
     {
         private readonly AppDbContext _context;
+        private readonly UserManager<User> _userManager;
+        private readonly SignInManager<User> _signInManager;
 
-        public AccountController(AppDbContext context)
+        public AccountController(AppDbContext context, UserManager<User> userManager, SignInManager<User> signInManager)
         {
             _context = context;
+            _userManager = userManager;
+            _signInManager = signInManager;
         }
 
         // LOGIN GET
@@ -28,47 +29,42 @@ namespace ETicaret.Controllers
         }
 
         // LOGIN POST
+        // POST Login işlemi:
         [HttpPost]
         public async Task<IActionResult> Login(string email, string password)
         {
             if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
             {
-                ModelState.AddModelError("", "Email ve şifre gereklidir.");
+                Console.WriteLine("Email ve şifre gereklidir.");
                 return View();
             }
 
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
-            if (user != null && VerifyPasswordHash(password, user.PasswordHash))
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user != null)
             {
-                // Claims oluştur
-                var claims = new List<Claim>
+                Console.WriteLine("Email .");
+                var result = await _signInManager.PasswordSignInAsync(user, password, isPersistent: false, lockoutOnFailure: true);
+
+                if (result.Succeeded)
                 {
-                    new Claim(ClaimTypes.Name, user.UserName),
-                    new Claim(ClaimTypes.Email, user.Email),
-                    new Claim(ClaimTypes.Role, user.Role)
-                };
+                    // Session bilgileri kaydet
+                    HttpContext.Session.SetString("UserId", user.Id);
+                    HttpContext.Session.SetString("UserName", user.UserName);
+                    HttpContext.Session.SetString("UserRole", user.Role);
 
-                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-
-                // Kullanıcıyı oturum aç
-                await HttpContext.SignInAsync(
-                    CookieAuthenticationDefaults.AuthenticationScheme,
-                    new ClaimsPrincipal(claimsIdentity)
-                );
-
-                // İstersen Session'a da yaz
-                HttpContext.Session.SetString("UserId", user.Id.ToString());
-                HttpContext.Session.SetString("UserName", user.UserName);
-                HttpContext.Session.SetString("UserRole", user.Role);
-
-                return RedirectToAction("Index", "Home");
+                    return RedirectToAction("Index", "Home");
+                }
+                else if (result.IsLockedOut)
+                {
+                    Console.WriteLine( "Hesabınız kilitlendi. Lütfen daha sonra tekrar deneyin.");
+                    return View();
+                }
             }
-            else
-            {
-                ModelState.AddModelError("", "Email veya şifre hatalı.");
-                return View();
-            }
+
+            Console.WriteLine("Email veya şifre hatalı.");
+            return View();
         }
+
 
         // REGISTER GET
         public IActionResult Register()
@@ -83,12 +79,14 @@ namespace ETicaret.Controllers
             if (password != confirmPassword)
             {
                 ModelState.AddModelError("", "Şifreler uyuşmuyor.");
+                Console.WriteLine("Şifreler");
                 return View();
             }
 
-            if (await _context.Users.AnyAsync(u => u.Email == email))
+            if (await _userManager.FindByEmailAsync(email) != null)
             {
                 ModelState.AddModelError("", "Bu email zaten kullanılıyor.");
+                Console.WriteLine("kullanılıyor");
                 return View();
             }
 
@@ -96,7 +94,6 @@ namespace ETicaret.Controllers
 
             if (profileImage != null && profileImage.Length > 0)
             {
-                // Kullanıcının fotoğrafını wwwroot/images/profiles klasörüne kaydedelim
                 var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "profiles");
 
                 if (!Directory.Exists(uploadsFolder))
@@ -104,7 +101,6 @@ namespace ETicaret.Controllers
                     Directory.CreateDirectory(uploadsFolder);
                 }
 
-                // Dosya adını benzersiz yapalım
                 var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(profileImage.FileName);
                 var filePath = Path.Combine(uploadsFolder, uniqueFileName);
 
@@ -113,7 +109,6 @@ namespace ETicaret.Controllers
                     await profileImage.CopyToAsync(fileStream);
                 }
 
-                // Veritabanına kaydedeceğimiz yol
                 profileImagePath = "/images/profiles/" + uniqueFileName;
             }
 
@@ -121,34 +116,43 @@ namespace ETicaret.Controllers
             {
                 UserName = userName,
                 Email = email,
-                PasswordHash = CreatePasswordHash(password),
-                Role = "Customer", // Varsayılan kullanıcı rolü
+                Role = "Customer",
                 ProfileImagePath = profileImagePath
             };
 
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
+            var result = await _userManager.CreateAsync(user, password);
 
-            return RedirectToAction("Login");
+            if (result.Succeeded)
+            {
+                // İstersen direkt login yapabilirsin
+                await _signInManager.SignInAsync(user, isPersistent: false);
+
+                return RedirectToAction("Index", "Home");
+            }
+            else
+            {
+                foreach (var error in result.Errors)
+                {
+                    ModelState.AddModelError("", error.Description);
+                }
+            }
+            Console.WriteLine("hiçbiri");
+
+            return View();
         }
 
         // LOGOUT
         [HttpPost]
         public async Task<IActionResult> Logout()
         {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            await _signInManager.SignOutAsync();
             HttpContext.Session.Clear();
             return RedirectToAction("Login");
         }
 
-        private string CreatePasswordHash(string password)
+        public IActionResult AccessDenied()
         {
-            return BCrypt.Net.BCrypt.HashPassword(password);
-        }
-
-        private bool VerifyPasswordHash(string password, string storedHash)
-        {
-            return BCrypt.Net.BCrypt.Verify(password, storedHash);
+            return View();
         }
     }
 }
