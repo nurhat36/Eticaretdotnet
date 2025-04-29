@@ -6,6 +6,8 @@ using Microsoft.EntityFrameworkCore;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
+using static System.Net.WebRequestMethods;
 
 namespace ETicaret.Controllers
 {
@@ -14,12 +16,100 @@ namespace ETicaret.Controllers
         private readonly AppDbContext _context;
         private readonly UserManager<User> _userManager;
         private readonly SignInManager<User> _signInManager;
+        private readonly ILogger<AccountController> _logger;
 
-        public AccountController(AppDbContext context, UserManager<User> userManager, SignInManager<User> signInManager)
+        public AccountController(AppDbContext context, UserManager<User> userManager, SignInManager<User> signInManager, ILogger<AccountController> logger)
         {
             _context = context;
             _userManager = userManager;
             _signInManager = signInManager;
+            _logger = logger;
+        }
+        [HttpGet]
+        public IActionResult GoogleLogin()
+        {
+            try
+            {
+                var redirectUrl = "https://localhost:5191/Account/GoogleResponse";
+                _logger.LogInformation("Google authentication started. Redirect URL: {RedirectUrl}", redirectUrl);
+
+                var properties = _signInManager.ConfigureExternalAuthenticationProperties(
+                    "Google",
+                    redirectUrl);
+
+                return new ChallengeResult("Google", properties);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Google login initiation failed");
+                TempData["ErrorMessage"] = "Google girişi başlatılamadı.";
+                return RedirectToAction("Login");
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GoogleResponse()
+        {
+            try
+            {
+                var info = await _signInManager.GetExternalLoginInfoAsync();
+                if (info == null)
+                {
+                    _logger.LogWarning("External login info is null");
+                    TempData["ErrorMessage"] = "Google bilgileri alınamadı.";
+                    return RedirectToAction("Login");
+                }
+
+                // Mevcut kullanıcıyı kontrol et
+                var signInResult = await _signInManager.ExternalLoginSignInAsync(
+                    info.LoginProvider,
+                    info.ProviderKey,
+                    isPersistent: false);
+
+                if (signInResult.Succeeded)
+                {
+                    _logger.LogInformation("User logged in with Google: {Email}", info.Principal.FindFirstValue(ClaimTypes.Email));
+                    return RedirectToAction("Index", "Home");
+                }
+
+                // Yeni kullanıcı oluştur
+                var email = info.Principal.FindFirstValue(ClaimTypes.Email);
+                if (string.IsNullOrEmpty(email))
+                {
+                    _logger.LogError("Google account email not found");
+                    TempData["ErrorMessage"] = "Google hesabınızda email bulunamadı.";
+                    return RedirectToAction("Login");
+                }
+
+                var user = new User
+                {
+                    UserName = email,
+                    Email = email,
+                    EmailConfirmed = true // Google ile giriş yapanların email'i doğrulanmış sayılır
+                };
+
+                var createResult = await _userManager.CreateAsync(user);
+                if (!createResult.Succeeded)
+                {
+                    var errors = string.Join(", ", createResult.Errors.Select(e => e.Description));
+                    _logger.LogError("User creation failed: {Errors}", errors);
+                    TempData["ErrorMessage"] = "Kullanıcı oluşturulamadı: " + errors;
+                    return RedirectToAction("Register");
+                }
+
+                // Google bilgilerini ekle ve giriş yap
+                await _userManager.AddLoginAsync(user, info);
+                await _signInManager.SignInAsync(user, isPersistent: false);
+
+                _logger.LogInformation("New user registered with Google: {Email}", email);
+                return RedirectToAction("Index", "Home");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Google authentication failed");
+                TempData["ErrorMessage"] = "Google girişi sırasında hata oluştu.";
+                return RedirectToAction("Login");
+            }
         }
 
         // LOGIN GET
@@ -38,7 +128,7 @@ namespace ETicaret.Controllers
                 Console.WriteLine("Email ve şifre gereklidir.");
                 return View();
             }
-
+            Console.WriteLine(email);
             var user = await _userManager.FindByEmailAsync(email);
             if (user != null)
             {
@@ -51,8 +141,9 @@ namespace ETicaret.Controllers
                     HttpContext.Session.SetString("UserId", user.Id);
                     HttpContext.Session.SetString("UserName", user.UserName);
                     HttpContext.Session.SetString("UserRole", user.Role);
+                    HttpContext.Session.SetString("ProfileImagePath", user.ProfileImagePath);
 
-                    return RedirectToAction("Index", "Home");
+                    return RedirectToAction("Privacy", "Home");
                 }
                 else if (result.IsLockedOut)
                 {
@@ -78,22 +169,27 @@ namespace ETicaret.Controllers
         {
             if (password != confirmPassword)
             {
-                ModelState.AddModelError("", "Şifreler uyuşmuyor.");
-                Console.WriteLine("Şifreler");
+                Console.WriteLine("Şifreler uyuşmuyor.");
                 return View();
             }
 
             if (await _userManager.FindByEmailAsync(email) != null)
             {
-                ModelState.AddModelError("", "Bu email zaten kullanılıyor.");
-                Console.WriteLine("kullanılıyor");
+                Console.WriteLine( "Bu email zaten kullanılıyor.");
                 return View();
             }
+            if (await _userManager.FindByNameAsync(userName) != null)
+            {
+                ModelState.AddModelError("", "Bu kullanıcı adı zaten kullanılıyor.");
+                return View();
+            }
+
 
             string profileImagePath = null;
 
             if (profileImage != null && profileImage.Length > 0)
             {
+                Console.WriteLine("resim");
                 var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "profiles");
 
                 if (!Directory.Exists(uploadsFolder))
@@ -116,30 +212,44 @@ namespace ETicaret.Controllers
             {
                 UserName = userName,
                 Email = email,
-                Role = "Customer",
+                Role = "Customer",  // Varsayılan olarak Customer rolü atandı
                 ProfileImagePath = profileImagePath
-            };
+            }; 
+            Console.WriteLine("user " + user.Email+"normal email "+user.NormalizedEmail + "hash code " + user.GetHashCode());
 
             var result = await _userManager.CreateAsync(user, password);
+            Console.WriteLine("Olsana  "+ result+"  "+result.Succeeded);
 
             if (result.Succeeded)
             {
-                // İstersen direkt login yapabilirsin
+                // Eğer kullanıcı başarılı bir şekilde oluşturulmuşsa, rol ataması yapılır
+                var roleResult = await _userManager.AddToRoleAsync(user, "Customer");
+                if (!roleResult.Succeeded)
+                {
+                    foreach (var error in roleResult.Errors)
+                    {
+                        ModelState.AddModelError("", error.Description);
+                    }
+                }
+
+                // İsterseniz direkt olarak giriş yapabilirsiniz
                 await _signInManager.SignInAsync(user, isPersistent: false);
 
                 return RedirectToAction("Index", "Home");
             }
             else
             {
+                // Hata mesajlarını model state'e ekle
                 foreach (var error in result.Errors)
                 {
                     ModelState.AddModelError("", error.Description);
                 }
             }
-            Console.WriteLine("hiçbiri");
-
+            Console.WriteLine("Olmadı");
             return View();
         }
+
+
 
         // LOGOUT
         [HttpPost]

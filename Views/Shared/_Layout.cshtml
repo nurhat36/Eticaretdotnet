@@ -1,6 +1,13 @@
 ﻿@using Microsoft.AspNetCore.Identity
 @inject UserManager<User> UserManager
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
 
+@{
+    var isAuthenticated = HttpContextAccessor.HttpContext.User.Identity.IsAuthenticated;
+    var profileImagePath = HttpContextAccessor.HttpContext.Session.GetString("ProfileImagePath") ?? "/images/default.png";
+    var userName = HttpContextAccessor.HttpContext.Session.GetString("UserName");
+}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -39,12 +46,13 @@
                         {
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="profileDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <img src="@ViewData["ProfileImagePath"]" width="30" height="30" class="rounded-circle" alt="Profile" />
+                                    <img src="@profileImagePath" width="30" height="30" class="rounded-circle" alt="Profile" />
                                     <span class="ms-2">@User.Identity.Name</span>
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
                                     <li><a class="dropdown-item" href="#">Profilim</a></li>
                                     <li><a class="dropdown-item" href="#">Ayarlar</a></li>
+                                    
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
                                         <form asp-controller="Account" asp-action="Logout" method="post" class="dropdown-item p-0 m-0">
