@@ -1,11 +1,38 @@
-﻿
-
-
-@{
+﻿@{
     ViewData["Title"] = "Home Page";
 }
 
-<h2>Products</h2>
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col text-center">
+            <h2 class="display-5">🛒 Ürün Listesi</h2>
+            <p class="text-muted">Ürünlerinizi buradan yönetebilir veya yenilerini ekleyebilirsiniz.</p>
+        </div>
+    </div>
 
+    <div class="row justify-content-center mb-5">
+        <div class="col-md-4">
+            <a href="@Url.Action("Create", "Product")" class="btn btn-success btn-lg w-100 shadow">
+                <i class="fas fa-plus-circle"></i> Yeni Ürün Oluştur
+            </a>
+        </div>
+    </div>
 
-<a href="@Url.Action("Create", "Product")" class="btn btn-primary">Create Product</a>
+    <div class="row">
+        <!-- Örnek kart - Dinamik olarak ürün listesi eklenecekse bu bölüm foreach ile yapılabilir -->
+        <div class="col-md-4 mb-4">
+            <div class="card border-0 shadow-sm">
+                <img src="https://via.placeholder.com/400x200" class="card-img-top" alt="Ürün görseli">
+                <div class="card-body">
+                    <h5 class="card-title">Örnek Ürün</h5>
+                    <p class="card-text">Bu ürünün kısa açıklaması burada yer alabilir.</p>
+                    <a href="#" class="btn btn-outline-primary">Detayları Gör</a>
+                </div>
+            </div>
+        </div>
+        <!-- Ürün kartları burada çoğaltılabilir -->
+    </div>
+</div>
+
+<!-- Font Awesome eklemek için layout dosyanıza aşağıdaki satırı ekleyin (eğer ekli değilse) -->
+<!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" /> -->

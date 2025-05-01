@@ -1,0 +1,82 @@
+﻿@using Microsoft.AspNetCore.Identity
+@inject UserManager<User> UserManager
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+@using Microsoft.AspNetCore.Mvc.Rendering
+
+@{
+    ViewData["Title"] = "MyProfil";
+    var userId = HttpContextAccessor.HttpContext.User?.Identity?.IsAuthenticated == true
+                 ? UserManager.GetUserId(HttpContextAccessor.HttpContext.User)
+                 : null;
+
+    var user = userId != null ? await UserManager.FindByIdAsync(userId) : null;
+
+    var profileImagePath = user?.ProfileImagePath ?? "/images/default.png";
+    var fullName =  User.Identity.Name;
+    var email = user?.Email;
+    
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0 rounded-4">
+                <div class="card-body text-center">
+                    <img src="@profileImagePath" class="rounded-circle mb-3 shadow" alt="Profil Fotoğrafı" width="120" height="120">
+
+                    <h3 class="card-title">@fullName</h3>
+                    <p class="text-muted">@email</p>
+
+                    <hr />
+
+                    <form asp-action="UpdateProfile" method="post" enctype="multipart/form-data">
+                        <div class="text-start ps-4 pe-4">
+                            <div class="mb-3">
+                                <label for="FullName" class="form-label"><strong>Ad Soyad:</strong></label>
+                                <input type="text" class="form-control" id="FullName" name="FullName" value="@fullName" required />
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="ProfileImage" class="form-label"><strong>Profil Resmi:</strong></label>
+                                <input type="file" class="form-control" id="ProfileImage" name="ProfileImage" />
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-block mt-4">
+                            <button type="submit" class="btn btn-outline-primary me-2">
+                                <i class="fas fa-save"></i> Profili Güncelle
+                            </button>
+                        </div>
+                    </form>
+
+                    <hr />
+
+                    <form asp-action="ChangePassword" method="post">
+                        <div class="text-start ps-4 pe-4">
+                            <div class="mb-3">
+                                <label for="CurrentPassword" class="form-label"><strong>Mevcut Şifre:</strong></label>
+                                <input type="password" class="form-control" id="CurrentPassword" name="CurrentPassword" required />
+                            </div>
+                            <div class="mb-3">
+                                <label for="NewPassword" class="form-label"><strong>Yeni Şifre:</strong></label>
+                                <input type="password" class="form-control" id="NewPassword" name="NewPassword" required />
+                            </div>
+                            <div class="mb-3">
+                                <label for="ConfirmPassword" class="form-label"><strong>Yeni Şifreyi Onayla:</strong></label>
+                                <input type="password" class="form-control" id="ConfirmPassword" name="ConfirmPassword" required />
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-block mt-4">
+                            <button type="submit" class="btn btn-outline-secondary">
+                                <i class="fas fa-key"></i> Şifreyi Değiştir
+                            </button>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

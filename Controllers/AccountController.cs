@@ -264,5 +264,86 @@ namespace ETicaret.Controllers
         {
             return View();
         }
+        public IActionResult MyProfil()
+        {
+            // Kullanıcı verilerini model ile gönderebilirsin
+            return View();
+        }
+        [HttpPost]
+        public async Task<IActionResult> ChangePassword(string currentPassword, string newPassword, string confirmPassword)
+        {
+            var userId = _userManager.GetUserId(User);
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            // Şifre doğrulama
+            if (newPassword != confirmPassword)
+            {
+                ModelState.AddModelError("", "Yeni şifreler eşleşmiyor.");
+                return View();
+            }
+
+            var result = await _userManager.ChangePasswordAsync(user, currentPassword, newPassword);
+
+            if (result.Succeeded)
+            {
+                // Başarılı işlem
+                return RedirectToAction("MyProfil");
+            }
+
+            // Hata durumunda
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError("", error.Description);
+            }
+
+            return View();
+        }
+        [HttpPost]
+        public async Task<IActionResult> UpdateProfile(string fullName, IFormFile profileImage)
+        {
+            var userId = _userManager.GetUserId(User);
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            user.UserName = fullName;
+            
+
+            // Profil resmi güncelleniyorsa, resmi kaydet
+            if (profileImage != null)
+            {
+                var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", profileImage.FileName);
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await profileImage.CopyToAsync(stream);
+                }
+                user.ProfileImagePath = "/images/" + profileImage.FileName;
+            }
+
+            var result = await _userManager.UpdateAsync(user);
+
+            if (result.Succeeded)
+            {
+                // Başarılı işlem
+                return RedirectToAction("MyProfil");
+            }
+            Console.WriteLine("olmadı");
+            // Hata durumunda
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError("", error.Description);
+            }
+
+            return View(user);
+        }
+
     }
 }
